@@ -30,12 +30,12 @@ export default function Home() {
             <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8 text-center">
                 
                 <h1 class="text-4xl font-extrabold text-gray-900 sm:text-5xl md:text-6xl mb-4">
-                    Üretim teknolojisini seç,<br>
-                    <span class="text-primary">anında fiyat al.</span>
+                    Endüstriyel Üretim Çözümleri<br>
+                    <span class="text-primary">Dosyanı Yükle, Üretime Başla.</span>
                 </h1>
                 
                 <p class="mt-4 text-gray-500 text-lg max-w-2xl mx-auto mb-10">
-                    Projeniz için en uygun üretim yöntemini aşağıdan seçin, makine simülasyonunu izleyin ve dosyanızı yükleyin.
+                    CNC Freze, Lazer Kesim ve 3D Baskı ihtiyaçlarınız için online fiyatlandırma ve hızlı üretim.
                 </p>
 
                 <div class="flex flex-wrap justify-center gap-4 mb-10">
@@ -50,53 +50,53 @@ export default function Home() {
                     </button>
                 </div>
 
-                <div class="max-w-5xl mx-auto bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100 min-h-[400px]">
+                <div class="max-w-5xl mx-auto bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100 min-h-[450px]">
                     
                     <div id="cnc-panel" class="service-content p-8 animate-fade-in flex flex-col md:flex-row items-center gap-10">
                         <div class="flex-1 text-left order-2 md:order-1">
                             <h3 class="text-2xl font-bold text-gray-900 mb-2">CNC Frezeleme</h3>
                             <p class="text-gray-500 mb-4">
-                                Blok malzemeden talaş kaldırarak üretim. Yüksek hassasiyetli parçalar için robotik kollar ve matkaplar iş başında.
+                                3 ve 5 eksenli CNC makinelerimizle metal ve plastik bloklarınızı mikron hassasiyetinde işliyoruz.
                             </p>
                             <label class="bg-primary hover:bg-blue-700 text-white px-8 py-4 rounded-xl cursor-pointer transition shadow-lg hover:shadow-xl inline-flex items-center">
                                 <i class="fa-solid fa-upload mr-3"></i> CNC Dosyası Yükle (.step)
                                 <input type="file" class="hidden">
                             </label>
                         </div>
-                        <div class="w-full md:w-1/2 flex justify-center order-1 md:order-2 bg-blue-50 rounded-xl p-4">
-                            <lottie-player src="https://assets3.lottiefiles.com/packages/lf20_w51pcehl.json"  background="transparent"  speed="1"  style="width: 300px; height: 300px;"  loop  autoplay></lottie-player>
+                        <div class="w-full md:w-1/2 flex justify-center order-1 md:order-2 bg-gray-50 rounded-xl p-4">
+                            <lottie-player src="https://lottie.host/020059c4-640b-4680-bc04-809074818318/74FhCj0Y4K.json" background="transparent" speed="1" style="width: 350px; height: 350px;" loop autoplay></lottie-player>
                         </div>
                     </div>
 
                     <div id="laser-panel" class="service-content hidden p-8 animate-fade-in flex flex-col md:flex-row items-center gap-10">
                         <div class="flex-1 text-left order-2 md:order-1">
-                            <h3 class="text-2xl font-bold text-gray-900 mb-2">Lazer Kesim Teknolojisi</h3>
+                            <h3 class="text-2xl font-bold text-gray-900 mb-2">Fiber Lazer Kesim</h3>
                             <p class="text-gray-500 mb-4">
-                                Işık hızında kesim. Sac metallerinizi milimetrik hassasiyetle kesip şekillendiriyoruz.
+                                Sac metalleriniz (DKP, Paslanmaz, Alüminyum) tabla üzerinde lazer teknolojisi ile çapaksız kesilir.
                             </p>
                             <label class="bg-primary hover:bg-blue-700 text-white px-8 py-4 rounded-xl cursor-pointer transition shadow-lg hover:shadow-xl inline-flex items-center">
                                 <i class="fa-solid fa-upload mr-3"></i> DXF/DWG Yükle
                                 <input type="file" class="hidden">
                             </label>
                         </div>
-                        <div class="w-full md:w-1/2 flex justify-center order-1 md:order-2 bg-orange-50 rounded-xl p-4">
-                             <lottie-player src="https://assets2.lottiefiles.com/packages/lf20_m911a8.json"  background="transparent"  speed="1"  style="width: 300px; height: 300px;"  loop  autoplay></lottie-player>
+                        <div class="w-full md:w-1/2 flex justify-center order-1 md:order-2 bg-gray-50 rounded-xl p-4">
+                            <lottie-player src="https://lottie.host/9f66718d-6a56-4c7b-b352-789a742468d6/M8Wk2Lz9Oq.json" background="transparent" speed="1" style="width: 350px; height: 350px;" loop autoplay></lottie-player>
                         </div>
                     </div>
 
                     <div id="3d-panel" class="service-content hidden p-8 animate-fade-in flex flex-col md:flex-row items-center gap-10">
                         <div class="flex-1 text-left order-2 md:order-1">
-                            <h3 class="text-2xl font-bold text-gray-900 mb-2">Katmanlı İmalat (3D Baskı)</h3>
+                            <h3 class="text-2xl font-bold text-gray-900 mb-2">Endüstriyel 3D Baskı</h3>
                             <p class="text-gray-500 mb-4">
-                                Dijital dosyalarınız katman katman gerçeğe dönüşüyor. Hızlı prototipleme simülasyonu.
+                                FDM ve SLA teknolojisi ile nozülün katman katman oluşturduğu kusursuz prototipler.
                             </p>
                             <label class="bg-primary hover:bg-blue-700 text-white px-8 py-4 rounded-xl cursor-pointer transition shadow-lg hover:shadow-xl inline-flex items-center">
                                 <i class="fa-solid fa-upload mr-3"></i> STL Dosyası Yükle
                                 <input type="file" class="hidden">
                             </label>
                         </div>
-                        <div class="w-full md:w-1/2 flex justify-center order-1 md:order-2 bg-indigo-50 rounded-xl p-4">
-                            <lottie-player src="https://assets8.lottiefiles.com/packages/lf20_accg3lm5.json"  background="transparent"  speed="1"  style="width: 300px; height: 300px;"  loop  autoplay></lottie-player>
+                        <div class="w-full md:w-1/2 flex justify-center order-1 md:order-2 bg-gray-50 rounded-xl p-4">
+                            <lottie-player src="https://assets10.lottiefiles.com/packages/lf20_tijmpky6.json" background="transparent" speed="1" style="width: 350px; height: 350px;" loop autoplay></lottie-player>
                         </div>
                     </div>
 
