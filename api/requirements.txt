@@ -1,0 +1,9 @@
+Flask
+Flask-SQLAlchemy
+Flask-Session
+redis
+psycopg2-binary
+werkzeug
+flask-cors
+python-dotenv
+gunicorn
