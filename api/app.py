@@ -201,3 +201,82 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
     app.run(host='127.0.0.1', port=5001)
+
+@app.route('/api/orders/<int:id>', methods=['DELETE'])
+def delete_order(id):
+    user_id = session.get('user_id')
+    role = session.get('role')
+    
+    if not user_id: return jsonify({'error': 'Yetkisiz erişim'}), 401
+
+    order = Order.query.get(id)
+    if not order: return jsonify({'error': 'Sipariş bulunamadı'}), 404
+
+    # Yetki Kontrolü: Sadece Admin VEYA Siparişin Sahibi silebilir
+    if role != 'admin' and order.user_id != user_id:
+        return jsonify({'error': 'Bunu silmeye yetkiniz yok'}), 403
+
+    # Müşteri ise, sadece "Bekliyor" durumundakileri silebilir (İşleme alınanı silemez)
+    if role != 'admin' and order.status != 'Bekliyor':
+        return jsonify({'error': 'İşleme alınan sipariş silinemez. Lütfen iletişime geçin.'}), 400
+
+    # 1. Fiziksel Dosyayı Sil (Disk Temizliği)
+    try:
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], order.stored_name)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+    except Exception as e:
+        print(f"Dosya silme hatası: {e}")
+
+    # 2. Veritabanından Sil
+    db.session.delete(order)
+    db.session.commit()
+
+    return jsonify({'message': 'Sipariş ve dosya başarıyla silindi'}), 200
+
+@app.route('/api/orders/<int:id>/update-file', methods=['POST'])
+def update_order_file(id):
+    user_id = session.get('user_id')
+    role = session.get('role')
+    
+    if not user_id: return jsonify({'error': 'Yetkisiz erişim'}), 401
+
+    order = Order.query.get(id)
+    if not order: return jsonify({'error': 'Sipariş bulunamadı'}), 404
+
+    # Yetki Kontrolü
+    if role != 'admin' and order.user_id != user_id:
+        return jsonify({'error': 'Yetkiniz yok'}), 403
+    
+    # Müşteri statü kontrolü
+    if role != 'admin' and order.status != 'Bekliyor':
+        return jsonify({'error': 'Fiyatlanan siparişin dosyası değiştirilemez.'}), 400
+
+    # Dosya Kontrolü
+    if 'file' not in request.files:
+        return jsonify({'error': 'Dosya yok'}), 400
+    
+    file = request.files['file']
+    if file.filename == '': return jsonify({'error': 'Dosya seçilmedi'}), 400
+
+    if file and allowed_file(file.filename):
+        # 1. Eski Dosyayı Sil
+        try:
+            old_path = os.path.join(app.config['UPLOAD_FOLDER'], order.stored_name)
+            if os.path.exists(old_path):
+                os.remove(old_path)
+        except: pass
+
+        # 2. Yeni Dosyayı Kaydet
+        original_filename = secure_filename(file.filename)
+        unique_name = f"{uuid.uuid4()}_{original_filename}"
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_name))
+
+        # 3. DB Güncelle
+        order.file_name = original_filename
+        order.stored_name = unique_name
+        db.session.commit()
+
+        return jsonify({'message': 'Dosya güncellendi'}), 200
+
+    return jsonify({'error': 'Geçersiz dosya türü'}), 400
