@@ -1,7 +1,10 @@
+import { AuthService } from "../services/AuthService.js";
+
 export default function Home() {
 
-    // Tab (Sekme) Mantığı
+    // --- JAVASCRIPT MANTIĞI ---
     setTimeout(() => {
+        // Tab Geçişleri
         const tabs = document.querySelectorAll('.service-tab');
         const contents = document.querySelectorAll('.service-content');
 
@@ -11,15 +14,58 @@ export default function Home() {
                     t.classList.remove('bg-primary', 'text-white', 'shadow-lg');
                     t.classList.add('bg-white', 'text-gray-600', 'hover:bg-gray-50');
                 });
-
                 this.classList.remove('bg-white', 'text-gray-600', 'hover:bg-gray-50');
                 this.classList.add('bg-primary', 'text-white', 'shadow-lg');
-
                 contents.forEach(c => c.classList.add('hidden'));
                 const targetId = this.getAttribute('data-target');
                 document.getElementById(targetId).classList.remove('hidden');
             });
         });
+
+        // --- DOSYA YÜKLEME MANTIĞI ---
+        window.handleFileUpload = async function (inputElement, serviceType) {
+            // 1. Kullanıcı giriş yapmış mı?
+            if (!AuthService.isAuthenticated()) {
+                alert("Dosya yüklemek için lütfen önce giriş yapın.");
+                window.location.hash = "/login";
+                return;
+            }
+
+            const file = inputElement.files[0];
+            if (!file) return;
+
+            // 2. Yükleniyor Mesajı Göster
+            const label = inputElement.parentElement;
+            const originalText = label.innerHTML;
+            label.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Yükleniyor...';
+            label.classList.add('opacity-75', 'cursor-wait');
+
+            // 3. Dosyayı Gönder (FormData kullanıyoruz)
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('service_type', serviceType);
+
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert("Dosyanız başarıyla yüklendi! Siparişiniz oluşturuldu.");
+                    window.location.hash = "/dashboard"; // Başarılıysa panele git
+                } else {
+                    alert("Hata: " + result.error);
+                    label.innerHTML = originalText; // Hatada eski haline dön
+                }
+            } catch (error) {
+                alert("Yükleme sırasında bir hata oluştu.");
+                label.innerHTML = originalText;
+            }
+        };
+
     }, 0);
 
     return `
@@ -55,7 +101,7 @@ export default function Home() {
                             <p class="text-gray-500 mb-4">Hassas CNC işleme.</p>
                             <label class="bg-primary hover:bg-blue-700 text-white px-8 py-4 rounded-xl cursor-pointer transition shadow-lg inline-flex items-center">
                                 <i class="fa-solid fa-upload mr-3"></i> CNC Dosyası Yükle
-                                <input type="file" class="hidden">
+                                <input type="file" class="hidden" onchange="handleFileUpload(this, 'CNC İşleme')">
                             </label>
                         </div>
                         <div class="w-full md:w-1/2 flex justify-center order-1 md:order-2 bg-gray-50 rounded-xl p-4">
@@ -69,7 +115,7 @@ export default function Home() {
                             <p class="text-gray-500 mb-4">Hızlı ve pürüzsüz kesim.</p>
                             <label class="bg-primary hover:bg-blue-700 text-white px-8 py-4 rounded-xl cursor-pointer transition shadow-lg inline-flex items-center">
                                 <i class="fa-solid fa-upload mr-3"></i> DXF Yükle
-                                <input type="file" class="hidden">
+                                <input type="file" class="hidden" onchange="handleFileUpload(this, 'Lazer Kesim')">
                             </label>
                         </div>
                         <div class="w-full md:w-1/2 flex justify-center order-1 md:order-2 bg-gray-50 rounded-xl p-4">
@@ -83,7 +129,7 @@ export default function Home() {
                             <p class="text-gray-500 mb-4">FDM ve SLA teknolojileri.</p>
                             <label class="bg-primary hover:bg-blue-700 text-white px-8 py-4 rounded-xl cursor-pointer transition shadow-lg inline-flex items-center">
                                 <i class="fa-solid fa-upload mr-3"></i> STL Yükle
-                                <input type="file" class="hidden">
+                                <input type="file" class="hidden" onchange="handleFileUpload(this, '3D Baskı')">
                             </label>
                         </div>
                         <div class="w-full md:w-1/2 flex justify-center order-1 md:order-2 bg-gray-50 rounded-xl p-4">

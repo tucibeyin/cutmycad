@@ -44,7 +44,11 @@ export default function Dashboard() {
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <div class="flex items-center">
-                        <i class="fa-solid fa-file mr-2 text-gray-400"></i> ${order.file}
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <a href="${order.download_url}" class="flex items-center text-primary hover:text-blue-800 hover:underline" title="Dosyayı İndir">
+                          <i class="fa-solid fa-file-arrow-down mr-2 text-lg"></i> ${order.file}
+                      </a>
+                      </td>
                     </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
