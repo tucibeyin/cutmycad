@@ -64,7 +64,7 @@ export default function Home() {
                             </label>
                         </div>
                         <div class="w-full md:w-1/2 flex justify-center order-1 md:order-2 bg-gray-50 rounded-xl p-4">
-                            <lottie-player src="https://cdn.lordicon.com/yqzmioaf.json" background="transparent" speed="1" style="width: 300px; height: 300px;" loop autoplay></lottie-player>
+                            <lottie-player src="/assets/anim/cnc.json" background="transparent" speed="1" style="width: 300px; height: 300px;" loop autoplay></lottie-player>
                         </div>
                     </div>
 
@@ -80,7 +80,7 @@ export default function Home() {
                             </label>
                         </div>
                         <div class="w-full md:w-1/2 flex justify-center order-1 md:order-2 bg-gray-50 rounded-xl p-4">
-                            <lottie-player src="https://cdn.lordicon.com/xfftqlvz.json" background="transparent" speed="1" style="width: 300px; height: 300px;" loop autoplay></lottie-player>
+                            <lottie-player src="/assets/anim/laser.json" background="transparent" speed="1" style="width: 300px; height: 300px;" loop autoplay></lottie-player>
                         </div>
                     </div>
 
@@ -96,7 +96,7 @@ export default function Home() {
                             </label>
                         </div>
                         <div class="w-full md:w-1/2 flex justify-center order-1 md:order-2 bg-gray-50 rounded-xl p-4">
-                            <lottie-player src="https://cdn.lordicon.com/ochimkct.json" background="transparent" speed="1" style="width: 300px; height: 300px;" loop autoplay></lottie-player>
+                            <lottie-player src="/assets/anim/3d.json" background="transparent" speed="1" style="width: 300px; height: 300px;" loop autoplay></lottie-player>
                         </div>
                     </div>
 
