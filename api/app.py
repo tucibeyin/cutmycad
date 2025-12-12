@@ -23,11 +23,11 @@ secret_key = os.getenv('SECRET_KEY')
 redis_url = os.getenv('REDIS_URL')
 
 # Dosya Yükleme Ayarları
-UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads') # Dosyalar buraya
+UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
 ALLOWED_EXTENSIONS = {'dxf', 'dwg', 'step', 'stp', 'stl', 'obj', 'pdf'}
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024 # Max 50MB dosya limiti
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
 app.config['SECRET_KEY'] = secret_key
 app.config['SQLALCHEMY_DATABASE_URI'] = f"postgresql://{db_user}:{db_pass}@{db_host}/{db_name}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -60,8 +60,8 @@ class Order(db.Model):
     file_name = db.Column(db.String(255), nullable=False)
     stored_name = db.Column(db.String(255), nullable=False)
     status = db.Column(db.String(20), default='Bekliyor')
-    price = db.Column(db.Float, nullable=True)          # Admin Fiyatı
-    counter_offer = db.Column(db.Float, nullable=True)  # Müşteri Teklifi (YENİ)
+    price = db.Column(db.Float, nullable=True)
+    counter_offer = db.Column(db.Float, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     
     user = db.relationship('User', backref=db.backref('orders', lazy=True))
@@ -72,59 +72,6 @@ def allowed_file(filename):
 
 # --- ROTALAR ---
 
-# YENİ: DOSYA YÜKLEME VE SİPARİŞ OLUŞTURMA
-@app.route('/api/upload', methods=['POST'])
-def upload_file():
-    # 1. Giriş kontrolü
-    user_id = session.get('user_id')
-    if not user_id:
-        return jsonify({'error': 'Lütfen önce giriş yapın'}), 401
-
-    # 2. Dosya var mı?
-    if 'file' not in request.files:
-        return jsonify({'error': 'Dosya bulunamadı'}), 400
-    
-    file = request.files['file']
-    service_type = request.form.get('service_type') # CNC, Lazer vb.
-
-    if file.filename == '':
-        return jsonify({'error': 'Dosya seçilmedi'}), 400
-
-    if file and allowed_file(file.filename):
-        # 3. Güvenli isim oluştur (Çakışmayı önlemek için UUID ekle)
-        original_filename = secure_filename(file.filename)
-        unique_name = f"{uuid.uuid4()}_{original_filename}"
-        
-        # 4. Dosyayı Kaydet
-        if not os.path.exists(app.config['UPLOAD_FOLDER']):
-            os.makedirs(app.config['UPLOAD_FOLDER'])
-            
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_name))
-
-        # 5. Veritabanına Yaz
-        new_order = Order(
-            user_id=user_id,
-            service_type=service_type,
-            file_name=original_filename, # Kullanıcıya görünecek isim
-            stored_name=unique_name      # İndirme linki için gerçek isim
-        )
-        db.session.add(new_order)
-        db.session.commit()
-
-        return jsonify({'message': 'Dosya yüklendi ve sipariş oluşturuldu'}), 201
-
-    return jsonify({'error': 'Desteklenmeyen dosya türü'}), 400
-
-# YENİ: DOSYA İNDİRME (Admin İçin)
-@app.route('/api/download/<filename>', methods=['GET'])
-def download_file(filename):
-    # Sadece giriş yapanlar indirebilir
-    if not session.get('user_id'):
-        return jsonify({'error': 'Yetkisiz erişim'}), 403
-        
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename, as_attachment=True)
-
-# ... (Kayıt, Login, Logout aynı kalacak) ...
 @app.route('/api/register', methods=['POST'])
 def register():
     data = request.json
@@ -161,7 +108,39 @@ def logout():
     session.clear()
     return jsonify({'message': 'Çıkış yapıldı'}), 200
 
-# GÜNCELLENDİ: SİPARİŞ LİSTELEME (İndirme Linki Eklendi)
+@app.route('/api/upload', methods=['POST'])
+def upload_file():
+    user_id = session.get('user_id')
+    if not user_id: return jsonify({'error': 'Lütfen önce giriş yapın'}), 401
+    if 'file' not in request.files: return jsonify({'error': 'Dosya bulunamadı'}), 400
+    
+    file = request.files['file']
+    service_type = request.form.get('service_type')
+    if file.filename == '': return jsonify({'error': 'Dosya seçilmedi'}), 400
+
+    if file and allowed_file(file.filename):
+        original_filename = secure_filename(file.filename)
+        unique_name = f"{uuid.uuid4()}_{original_filename}"
+        if not os.path.exists(app.config['UPLOAD_FOLDER']):
+            os.makedirs(app.config['UPLOAD_FOLDER'])
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_name))
+
+        new_order = Order(
+            user_id=user_id,
+            service_type=service_type,
+            file_name=original_filename,
+            stored_name=unique_name
+        )
+        db.session.add(new_order)
+        db.session.commit()
+        return jsonify({'message': 'Dosya yüklendi ve sipariş oluşturuldu'}), 201
+    return jsonify({'error': 'Desteklenmeyen dosya türü'}), 400
+
+@app.route('/api/download/<filename>', methods=['GET'])
+def download_file(filename):
+    if not session.get('user_id'): return jsonify({'error': 'Yetkisiz erişim'}), 403
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename, as_attachment=True)
+
 @app.route('/api/orders', methods=['GET'])
 def get_orders():
     user_id = session.get('user_id')
@@ -180,9 +159,10 @@ def get_orders():
             'customer': f"{order.user.first_name} {order.user.last_name}",
             'service': order.service_type,
             'file': order.file_name,
-            'download_url': f"/api/download/{order.stored_name}", # İndirme linki
+            'download_url': f"/api/download/{order.stored_name}",
             'status': order.status,
             'price': order.price,
+            'counter_offer': order.counter_offer,
             'date': order.created_at.strftime("%d-%m-%Y %H:%M")
         })
     return jsonify(output), 200
@@ -198,125 +178,80 @@ def update_price(id):
     db.session.commit()
     return jsonify({'message': 'Fiyat güncellendi'}), 200
 
-# --- YENİ: MÜŞTERİ AKSİYONLARI ---
-
-# 1. SİPARİŞ ONAYLA (Müşteri)
 @app.route('/api/orders/<int:id>/approve', methods=['POST'])
 def approve_order(id):
     user_id = session.get('user_id')
     if not user_id: return jsonify({'error': 'Yetkisiz'}), 401
-
     order = Order.query.get(id)
-    if not order or order.user_id != user_id:
-        return jsonify({'error': 'Sipariş bulunamadı'}), 404
-
+    if not order or order.user_id != user_id: return jsonify({'error': 'Sipariş bulunamadı'}), 404
     order.status = 'Onaylandı'
     db.session.commit()
-    return jsonify({'message': 'Sipariş onaylandı! Üretime alınacak.'}), 200
+    return jsonify({'message': 'Sipariş onaylandı!'}), 200
 
-# 2. KARŞI TEKLİF VER (Müşteri)
 @app.route('/api/orders/<int:id>/counter', methods=['POST'])
 def counter_offer(id):
     user_id = session.get('user_id')
     if not user_id: return jsonify({'error': 'Yetkisiz'}), 401
-
     data = request.json
-    offer = data.get('offer')
-
     order = Order.query.get(id)
-    if not order or order.user_id != user_id:
-        return jsonify({'error': 'Sipariş bulunamadı'}), 404
-
-    order.counter_offer = offer
-    order.status = 'Pazarlık' # Admin bunu görecek
+    if not order or order.user_id != user_id: return jsonify({'error': 'Sipariş bulunamadı'}), 404
+    order.counter_offer = data.get('offer')
+    order.status = 'Pazarlık'
     db.session.commit()
-    return jsonify({'message': 'Teklifiniz admine iletildi.'}), 200
-
-if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-    app.run(host='127.0.0.1', port=5001)
+    return jsonify({'message': 'Teklif iletildi.'}), 200
 
 @app.route('/api/orders/<int:id>', methods=['DELETE'])
 def delete_order(id):
     user_id = session.get('user_id')
     role = session.get('role')
-    
-    if not user_id: return jsonify({'error': 'Yetkisiz erişim'}), 401
-
+    if not user_id: return jsonify({'error': 'Yetkisiz'}), 401
     order = Order.query.get(id)
     if not order: return jsonify({'error': 'Sipariş bulunamadı'}), 404
+    
+    # Sadece Admin veya Bekleyen Sipariş Sahibi Silebilir
+    if role != 'admin' and (order.user_id != user_id or order.status != 'Bekliyor'):
+        return jsonify({'error': 'Bu işlem yapılamaz'}), 403
 
-    # Yetki Kontrolü
-    if role != 'admin' and order.user_id != user_id:
-        return jsonify({'error': 'Bunu silmeye yetkiniz yok'}), 403
-
-    # Müşteri ise, işlemdeki siparişi silemez
-    if role != 'admin' and order.status != 'Bekliyor':
-        return jsonify({'error': 'İşleme alınan sipariş silinemez.'}), 400
-
-    # --- 1. ADIM: DİSKTEKİ DOSYAYI SİL ---
     try:
-        # Dosyanın tam yolunu bul
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], order.stored_name)
-        
-        # Eğer dosya gerçekten varsa sil
-        if os.path.exists(file_path):
-            os.remove(file_path) # <--- İŞTE FİZİKSEL SİLME KOMUTU
-            print(f"Dosya silindi: {order.stored_name}") # Loglara yaz
-    except Exception as e:
-        # Dosya zaten yoksa veya hata olursa sistemi durdurma, veritabanından silmeye devam et
-        print(f"Dosya silme hatası (Önemli değil): {e}")
+        if os.path.exists(file_path): os.remove(file_path)
+    except: pass
 
-    # --- 2. ADIM: VERİTABANINDAN SİL ---
     db.session.delete(order)
     db.session.commit()
-
-    return jsonify({'message': 'Sipariş ve dosya başarıyla silindi'}), 200
+    return jsonify({'message': 'Silindi'}), 200
 
 @app.route('/api/orders/<int:id>/update-file', methods=['POST'])
 def update_order_file(id):
     user_id = session.get('user_id')
     role = session.get('role')
-    
-    if not user_id: return jsonify({'error': 'Yetkisiz erişim'}), 401
-
+    if not user_id: return jsonify({'error': 'Yetkisiz'}), 401
     order = Order.query.get(id)
     if not order: return jsonify({'error': 'Sipariş bulunamadı'}), 404
 
-    # Yetki Kontrolü
-    if role != 'admin' and order.user_id != user_id:
-        return jsonify({'error': 'Yetkiniz yok'}), 403
+    if role != 'admin' and (order.user_id != user_id or order.status != 'Bekliyor'):
+        return jsonify({'error': 'İşlem yapılamaz'}), 403
     
-    # Müşteri statü kontrolü
-    if role != 'admin' and order.status != 'Bekliyor':
-        return jsonify({'error': 'Fiyatlanan siparişin dosyası değiştirilemez.'}), 400
-
-    # Dosya Kontrolü
-    if 'file' not in request.files:
-        return jsonify({'error': 'Dosya yok'}), 400
-    
+    if 'file' not in request.files: return jsonify({'error': 'Dosya yok'}), 400
     file = request.files['file']
-    if file.filename == '': return jsonify({'error': 'Dosya seçilmedi'}), 400
+    if file.filename == '' or not allowed_file(file.filename): return jsonify({'error': 'Geçersiz dosya'}), 400
 
-    if file and allowed_file(file.filename):
-        # 1. Eski Dosyayı Sil
-        try:
-            old_path = os.path.join(app.config['UPLOAD_FOLDER'], order.stored_name)
-            if os.path.exists(old_path):
-                os.remove(old_path)
-        except: pass
+    try:
+        old_path = os.path.join(app.config['UPLOAD_FOLDER'], order.stored_name)
+        if os.path.exists(old_path): os.remove(old_path)
+    except: pass
 
-        # 2. Yeni Dosyayı Kaydet
-        original_filename = secure_filename(file.filename)
-        unique_name = f"{uuid.uuid4()}_{original_filename}"
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_name))
+    original_filename = secure_filename(file.filename)
+    unique_name = f"{uuid.uuid4()}_{original_filename}"
+    file.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_name))
+    
+    order.file_name = original_filename
+    order.stored_name = unique_name
+    db.session.commit()
+    return jsonify({'message': 'Dosya güncellendi'}), 200
 
-        # 3. DB Güncelle
-        order.file_name = original_filename
-        order.stored_name = unique_name
-        db.session.commit()
-
-        return jsonify({'message': 'Dosya güncellendi'}), 200
-
-    return jsonify({'error': 'Geçersiz dosya türü'}), 400
+# --- BAŞLATMA ---
+if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
+    app.run(host='127.0.0.1', port=5001)

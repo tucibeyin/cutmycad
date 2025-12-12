@@ -1,22 +1,26 @@
 import Header from './components/Header.js';
-// import Footer from './components/Footer.js'; // İstersen ekle
+import Footer from './components/Footer.js'; // <-- EKLENDİ
 import { router } from './router.js';
 
-const root = document.getElementById('root');
+const app = document.getElementById('app');
 
-function render() {
-    root.innerHTML = `
-        <div class="app-container">
+const render = async () => {
+    const pageContent = await router();
+
+    app.innerHTML = `
+        <div class="flex flex-col min-h-screen bg-gray-50 font-sans text-gray-900">
+            
             ${Header()}
-            <main id="main-content">
-                ${router()}
+
+            <main class="flex-grow">
+                ${pageContent}
             </main>
-            </div>
+
+            ${Footer()}
+            
+        </div>
     `;
-}
+};
 
-// URL değişince (Hash change) yeniden render et
 window.addEventListener('hashchange', render);
-
-// İlk açılışta render et
 window.addEventListener('load', render);
