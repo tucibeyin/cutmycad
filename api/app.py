@@ -57,10 +57,11 @@ class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     service_type = db.Column(db.String(50), nullable=False)
-    file_name = db.Column(db.String(255), nullable=False) # Ekranda görünen isim
-    stored_name = db.Column(db.String(255), nullable=False) # Sunucudaki benzersiz isim
+    file_name = db.Column(db.String(255), nullable=False)
+    stored_name = db.Column(db.String(255), nullable=False)
     status = db.Column(db.String(20), default='Bekliyor')
-    price = db.Column(db.Float, nullable=True)
+    price = db.Column(db.Float, nullable=True)          # Admin Fiyatı
+    counter_offer = db.Column(db.Float, nullable=True)  # Müşteri Teklifi (YENİ)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     
     user = db.relationship('User', backref=db.backref('orders', lazy=True))
@@ -196,6 +197,40 @@ def update_price(id):
     order.status = 'Fiyatlandı'
     db.session.commit()
     return jsonify({'message': 'Fiyat güncellendi'}), 200
+
+# --- YENİ: MÜŞTERİ AKSİYONLARI ---
+
+# 1. SİPARİŞ ONAYLA (Müşteri)
+@app.route('/api/orders/<int:id>/approve', methods=['POST'])
+def approve_order(id):
+    user_id = session.get('user_id')
+    if not user_id: return jsonify({'error': 'Yetkisiz'}), 401
+
+    order = Order.query.get(id)
+    if not order or order.user_id != user_id:
+        return jsonify({'error': 'Sipariş bulunamadı'}), 404
+
+    order.status = 'Onaylandı'
+    db.session.commit()
+    return jsonify({'message': 'Sipariş onaylandı! Üretime alınacak.'}), 200
+
+# 2. KARŞI TEKLİF VER (Müşteri)
+@app.route('/api/orders/<int:id>/counter', methods=['POST'])
+def counter_offer(id):
+    user_id = session.get('user_id')
+    if not user_id: return jsonify({'error': 'Yetkisiz'}), 401
+
+    data = request.json
+    offer = data.get('offer')
+
+    order = Order.query.get(id)
+    if not order or order.user_id != user_id:
+        return jsonify({'error': 'Sipariş bulunamadı'}), 404
+
+    order.counter_offer = offer
+    order.status = 'Pazarlık' # Admin bunu görecek
+    db.session.commit()
+    return jsonify({'message': 'Teklifiniz admine iletildi.'}), 200
 
 if __name__ == '__main__':
     with app.app_context():
