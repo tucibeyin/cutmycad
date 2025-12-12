@@ -212,23 +212,28 @@ def delete_order(id):
     order = Order.query.get(id)
     if not order: return jsonify({'error': 'Sipariş bulunamadı'}), 404
 
-    # Yetki Kontrolü: Sadece Admin VEYA Siparişin Sahibi silebilir
+    # Yetki Kontrolü
     if role != 'admin' and order.user_id != user_id:
         return jsonify({'error': 'Bunu silmeye yetkiniz yok'}), 403
 
-    # Müşteri ise, sadece "Bekliyor" durumundakileri silebilir (İşleme alınanı silemez)
+    # Müşteri ise, işlemdeki siparişi silemez
     if role != 'admin' and order.status != 'Bekliyor':
-        return jsonify({'error': 'İşleme alınan sipariş silinemez. Lütfen iletişime geçin.'}), 400
+        return jsonify({'error': 'İşleme alınan sipariş silinemez.'}), 400
 
-    # 1. Fiziksel Dosyayı Sil (Disk Temizliği)
+    # --- 1. ADIM: DİSKTEKİ DOSYAYI SİL ---
     try:
+        # Dosyanın tam yolunu bul
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], order.stored_name)
+        
+        # Eğer dosya gerçekten varsa sil
         if os.path.exists(file_path):
-            os.remove(file_path)
+            os.remove(file_path) # <--- İŞTE FİZİKSEL SİLME KOMUTU
+            print(f"Dosya silindi: {order.stored_name}") # Loglara yaz
     except Exception as e:
-        print(f"Dosya silme hatası: {e}")
+        # Dosya zaten yoksa veya hata olursa sistemi durdurma, veritabanından silmeye devam et
+        print(f"Dosya silme hatası (Önemli değil): {e}")
 
-    # 2. Veritabanından Sil
+    # --- 2. ADIM: VERİTABANINDAN SİL ---
     db.session.delete(order)
     db.session.commit()
 
