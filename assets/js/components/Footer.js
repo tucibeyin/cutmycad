@@ -1,5 +1,5 @@
 export default function Footer() {
-    const year = new Date().getFullYear();
+    const year = new Date().getFullYear(); // Otomatik olarak 2025 (veya o anki yılı) alır
 
     return `
         <footer class="bg-gray-900 text-gray-300 mt-auto border-t border-gray-800">
@@ -42,7 +42,7 @@ export default function Footer() {
                 </div>
                 
                 <div class="mt-8 border-t border-gray-800 pt-8 text-center">
-                    <p class="text-xs text-gray-500">&copy; ${year} CutMyCad Teknoloji. Tüm hakları saklıdır.</p>
+                    <p class="text-xs text-gray-500">&copy; ${year} vovDigital. Tüm hakları saklıdır.</p>
                 </div>
             </div>
         </footer>
