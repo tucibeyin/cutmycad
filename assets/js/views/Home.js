@@ -64,7 +64,7 @@ export default function Home() {
                             </label>
                         </div>
                         <div class="w-full md:w-1/2 flex justify-center order-1 md:order-2 bg-gray-50 rounded-xl p-4">
-                            <lottie-player src="https://lottie.host/020059c4-640b-4680-bc04-809074818318/74FhCj0Y4K.json" background="transparent" speed="1" style="width: 350px; height: 350px;" loop autoplay></lottie-player>
+                            <lottie-player src="./assets/anim/cnc.json" background="transparent" speed="1" style="width: 350px; height: 350px;" loop autoplay></lottie-player>
                         </div>
                     </div>
 
@@ -80,7 +80,7 @@ export default function Home() {
                             </label>
                         </div>
                         <div class="w-full md:w-1/2 flex justify-center order-1 md:order-2 bg-gray-50 rounded-xl p-4">
-                            <lottie-player src="https://lottie.host/9f66718d-6a56-4c7b-b352-789a742468d6/M8Wk2Lz9Oq.json" background="transparent" speed="1" style="width: 350px; height: 350px;" loop autoplay></lottie-player>
+                            <lottie-player src="./assets/anim/laser.json" background="transparent" speed="1" style="width: 350px; height: 350px;" loop autoplay></lottie-player>
                         </div>
                     </div>
 
@@ -96,7 +96,7 @@ export default function Home() {
                             </label>
                         </div>
                         <div class="w-full md:w-1/2 flex justify-center order-1 md:order-2 bg-gray-50 rounded-xl p-4">
-                            <lottie-player src="https://assets10.lottiefiles.com/packages/lf20_tijmpky6.json" background="transparent" speed="1" style="width: 350px; height: 350px;" loop autoplay></lottie-player>
+                            <lottie-player src="./assets/anim/3d.json" background="transparent" speed="1" style="width: 350px; height: 350px;" loop autoplay></lottie-player>
                         </div>
                     </div>
 
