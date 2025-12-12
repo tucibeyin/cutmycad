@@ -64,7 +64,7 @@ export default function Home() {
                             </label>
                         </div>
                         <div class="w-full md:w-1/2 flex justify-center order-1 md:order-2 bg-gray-50 rounded-xl p-4">
-                            <lottie-player src="/assets/anim/cnc.json" background="transparent" speed="1" style="width: 300px; height: 300px;" loop autoplay></lottie-player>
+                            <img src="https://media.giphy.com/media/L0O3TQpp0WnSXILkxA/giphy.gif" class="rounded-lg mix-blend-multiply w-64 h-64 object-contain" alt="CNC İşleme">
                         </div>
                     </div>
 
@@ -80,7 +80,7 @@ export default function Home() {
                             </label>
                         </div>
                         <div class="w-full md:w-1/2 flex justify-center order-1 md:order-2 bg-gray-50 rounded-xl p-4">
-                            <lottie-player src="/assets/anim/laser.json" background="transparent" speed="1" style="width: 300px; height: 300px;" loop autoplay></lottie-player>
+                            <img src="https://media.giphy.com/media/13HgwGsXF0aiGY/giphy.gif" class="rounded-lg mix-blend-multiply w-64 h-64 object-contain" alt="Lazer Kesim">
                         </div>
                     </div>
 
@@ -96,7 +96,7 @@ export default function Home() {
                             </label>
                         </div>
                         <div class="w-full md:w-1/2 flex justify-center order-1 md:order-2 bg-gray-50 rounded-xl p-4">
-                            <lottie-player src="/assets/anim/3d.json" background="transparent" speed="1" style="width: 300px; height: 300px;" loop autoplay></lottie-player>
+                            <img src="https://media.giphy.com/media/pX1T8L8p3g4h2/giphy.gif" class="rounded-lg mix-blend-multiply w-64 h-64 object-contain" alt="3D Baskı">
                         </div>
                     </div>
 
