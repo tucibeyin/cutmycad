@@ -32,101 +32,103 @@ db = SQLAlchemy(app)
 server_session = Session(app)
 CORS(app, supports_credentials=True)
 
-# --- YENİ KULLANICI MODELİ ---
+# --- DB MODELLERİ ---
 class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
-    first_name = db.Column(db.String(50), nullable=False)  # Ad
-    last_name = db.Column(db.String(50), nullable=False)   # Soyad
-    phone = db.Column(db.String(20), nullable=False)       # Telefon
-    email = db.Column(db.String(120), unique=True, nullable=False) # E-Posta (Giriş için)
+    first_name = db.Column(db.String(50), nullable=False)
+    last_name = db.Column(db.String(50), nullable=False)
+    phone = db.Column(db.String(20), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
+    role = db.Column(db.String(20), default='customer') # 'admin' veya 'customer'
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
 class Order(db.Model):
     __tablename__ = 'orders'
     id = db.Column(db.Integer, primary_key=True)
-    customer_name = db.Column(db.String(100), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False) # Sipariş kime ait?
     service_type = db.Column(db.String(50), nullable=False)
     file_name = db.Column(db.String(255), nullable=False)
     status = db.Column(db.String(20), default='Bekliyor')
     price = db.Column(db.Float, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    
+    # Kullanıcıyla ilişki kur (Adını çekebilmek için)
+    user = db.relationship('User', backref=db.backref('orders', lazy=True))
 
 # --- ROTALAR ---
 
-# YENİ: KAYIT OL (Register)
 @app.route('/api/register', methods=['POST'])
 def register():
     data = request.json
+    # ... (Validasyonlar aynı) ...
+    if User.query.filter_by(email=data.get('email')).first():
+        return jsonify({'error': 'Bu e-posta kayıtlı'}), 400
+
+    hashed_pw = generate_password_hash(data.get('password'))
     
-    # Verileri al
-    first_name = data.get('first_name')
-    last_name = data.get('last_name')
-    phone = data.get('phone')
-    email = data.get('email')
-    password = data.get('password')
+    # İLK KULLANICIYI OTOMATİK ADMİN YAP (Test Kolaylığı İçin)
+    role = 'customer'
+    if User.query.count() == 0:
+        role = 'admin'
 
-    # Boş alan kontrolü
-    if not all([first_name, last_name, phone, email, password]):
-        return jsonify({'error': 'Lütfen tüm alanları doldurun'}), 400
-
-    # E-posta daha önce alınmış mı?
-    if User.query.filter_by(email=email).first():
-        return jsonify({'error': 'Bu e-posta adresi zaten kayıtlı'}), 400
-
-    # Kayıt İşlemi
-    hashed_pw = generate_password_hash(password)
     new_user = User(
-        first_name=first_name,
-        last_name=last_name,
-        phone=phone,
-        email=email,
-        password_hash=hashed_pw
+        first_name=data.get('first_name'),
+        last_name=data.get('last_name'),
+        phone=data.get('phone'),
+        email=data.get('email'),
+        password_hash=hashed_pw,
+        role=role 
     )
-    
     db.session.add(new_user)
     db.session.commit()
+    return jsonify({'message': 'Kayıt başarılı'}), 201
 
-    return jsonify({'message': 'Kayıt başarılı! Giriş yapabilirsiniz.'}), 201
-
-# GÜNCELLENDİ: GİRİŞ YAP (Login - Artık Email ile)
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.json
-    email = data.get('email')     # Username yerine Email
-    password = data.get('password')
+    user = User.query.filter_by(email=data.get('email')).first()
 
-    user = User.query.filter_by(email=email).first()
-
-    if user and check_password_hash(user.password_hash, password):
+    if user and check_password_hash(user.password_hash, data.get('password')):
         session['user_id'] = user.id
-        session['username'] = f"{user.first_name} {user.last_name}" # Ekranda Ad Soyad görünsün
-        return jsonify({'message': 'Giriş başarılı', 'user': session['username']}), 200
+        session['role'] = user.role # Rolü session'a kaydet
+        session['username'] = f"{user.first_name} {user.last_name}"
+        
+        # Frontend'e rol bilgisini de dönüyoruz
+        return jsonify({
+            'message': 'Giriş başarılı', 
+            'user': session['username'],
+            'role': user.role 
+        }), 200
     
-    return jsonify({'error': 'Hatalı e-posta veya şifre'}), 401
-
-@app.route('/api/check-session', methods=['GET'])
-def check_session():
-    user_id = session.get('user_id')
-    if not user_id: return jsonify({'authenticated': False}), 401
-    return jsonify({'authenticated': True, 'username': session.get('username')}), 200
+    return jsonify({'error': 'Hatalı bilgiler'}), 401
 
 @app.route('/api/logout', methods=['POST'])
 def logout():
-    session.pop('user_id', None)
-    session.pop('username', None)
+    session.clear()
     return jsonify({'message': 'Çıkış yapıldı'}), 200
 
-# SİPARİŞLER (Aynı kaldı)
+# --- AKILLI SİPARİŞ LİSTELEME ---
 @app.route('/api/orders', methods=['GET'])
 def get_orders():
-    orders = Order.query.order_by(Order.created_at.desc()).all()
+    user_id = session.get('user_id')
+    if not user_id: return jsonify({'error': 'Yetkisiz erişim'}), 401
+
+    current_user = User.query.get(user_id)
+    
+    if current_user.role == 'admin':
+        # Admin ise HERKESİN siparişini getir
+        orders = Order.query.order_by(Order.created_at.desc()).all()
+    else:
+        # Müşteri ise SADECE KENDİ siparişini getir
+        orders = Order.query.filter_by(user_id=user_id).order_by(Order.created_at.desc()).all()
+
     output = []
     for order in orders:
         output.append({
             'id': order.id,
-            'customer': order.customer_name,
+            'customer': f"{order.user.first_name} {order.user.last_name}", # İlişkiden isim çekiyoruz
             'service': order.service_type,
             'file': order.file_name,
             'status': order.status,
@@ -137,24 +139,30 @@ def get_orders():
 
 @app.route('/api/orders/<int:id>/quote', methods=['POST'])
 def update_price(id):
+    # Sadece admin fiyat verebilir
+    if session.get('role') != 'admin':
+        return jsonify({'error': 'Yetkiniz yok'}), 403
+
     data = request.json
-    new_price = data.get('price')
     order = Order.query.get(id)
-    if not order: return jsonify({'error': 'Sipariş bulunamadı'}), 404
-    order.price = new_price
+    if not order: return jsonify({'error': 'Sipariş yok'}), 404
+    
+    order.price = data.get('price')
     order.status = 'Fiyatlandı'
     db.session.commit()
     return jsonify({'message': 'Fiyat güncellendi'}), 200
 
+# TEST VERİSİ (Giriş yapan kullanıcı adına oluşturur)
 @app.route('/api/create-fake-orders', methods=['GET'])
 def fake_orders():
-    if Order.query.count() == 0:
-        o1 = Order(customer_name="Ahmet Yılmaz", service_type="CNC İşleme", file_name="motor_block_v2.step")
-        o2 = Order(customer_name="Mehmet Demir", service_type="Lazer Kesim", file_name="flanş_3mm.dxf")
-        db.session.add_all([o1, o2])
-        db.session.commit()
-        return jsonify({'message': 'Test siparişleri oluşturuldu'}), 201
-    return jsonify({'message': 'Zaten siparişler var'}), 200
+    user_id = session.get('user_id')
+    if not user_id: return jsonify({'error': 'Önce giriş yapın'}), 401
+    
+    o1 = Order(user_id=user_id, service_type="CNC İşleme", file_name="demo_parca_1.step")
+    o2 = Order(user_id=user_id, service_type="3D Baskı", file_name="prototype_v2.stl")
+    db.session.add_all([o1, o2])
+    db.session.commit()
+    return jsonify({'message': 'Hesabınıza 2 adet test siparişi eklendi'}), 201
 
 if __name__ == '__main__':
     with app.app_context():

@@ -1,26 +1,25 @@
 export const AuthService = {
     // Giriş Yap
-    login: async (username, password) => {
+    login: async (email, password) => { // username -> email yaptık
         try {
-            // Sunucuya (Python) istek atıyoruz
             const response = await fetch('/api/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: username, password })
+                body: JSON.stringify({ email, password })
             });
 
             const data = await response.json();
 
             if (response.ok) {
-                // Giriş başarılıysa kullanıcı adını tarayıcıya kaydet (Hafıza)
                 localStorage.setItem("user_token", "logged_in");
                 localStorage.setItem("username", data.user);
+                localStorage.setItem("role", data.role); // <--- YENİ: Rolü kaydet
                 return { success: true, user: data.user };
             } else {
                 return { success: false, message: data.error };
             }
         } catch (error) {
-            return { success: false, message: "Sunucu hatası! Bağlantı yok." };
+            return { success: false, message: "Sunucu hatası" };
         }
     },
 
@@ -32,6 +31,7 @@ export const AuthService = {
         // Tarayıcı hafızasını temizle
         localStorage.removeItem("user_token");
         localStorage.removeItem("username");
+        localStorage.removeItem("role");
 
         // Ana sayfaya yönlendir
         window.location.hash = '/login';

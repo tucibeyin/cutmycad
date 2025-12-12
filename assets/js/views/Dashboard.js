@@ -19,10 +19,16 @@ export default function Dashboard() {
         }
     }
 
-    // Tabloyu Çizen Fonksiyon
     function renderTable(orders) {
         const tbody = document.getElementById("orderTableBody");
+        const userRole = localStorage.getItem("role"); // Rolü buradan okuyoruz
+
         if (!tbody) return;
+
+        if (orders.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500">Henüz siparişiniz yok.</td></tr>';
+            return;
+        }
 
         tbody.innerHTML = orders.map(order => `
             <tr class="hover:bg-gray-50 transition">
@@ -32,33 +38,35 @@ export default function Dashboard() {
                     <div class="text-sm text-gray-500">${order.date}</div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                        ${order.service === 'CNC İşleme' ? 'bg-blue-100 text-blue-800' :
-                order.service === 'Lazer Kesim' ? 'bg-orange-100 text-orange-800' : 'bg-purple-100 text-purple-800'}">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
                         ${order.service}
                     </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <a href="#" class="text-primary hover:underline flex items-center">
-                        <i class="fa-solid fa-file-arrow-down mr-2"></i> ${order.file}
-                    </a>
+                    <div class="flex items-center">
+                        <i class="fa-solid fa-file mr-2 text-gray-400"></i> ${order.file}
+                    </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                     ${order.status === 'Bekliyor'
                 ? '<span class="text-yellow-600 font-bold text-xs"><i class="fa-solid fa-clock"></i> Fiyat Bekliyor</span>'
                 : '<span class="text-green-600 font-bold text-xs"><i class="fa-solid fa-check-circle"></i> Fiyatlandı</span>'}
                 </td>
+                
                 <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="flex items-center space-x-2">
-                        <input type="number" id="price-${order.id}" 
-                            value="${order.price || ''}" 
-                            placeholder="0.00" 
-                            class="w-24 border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:border-primary">
-                        <span class="text-gray-500 text-sm">₺</span>
-                        <button onclick="savePrice(${order.id})" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-xs shadow-sm transition">
-                            <i class="fa-solid fa-save"></i>
-                        </button>
-                    </div>
+                    ${userRole === 'admin'
+                ? /* ADMİN İSE: Düzenlenebilir Input Göster */ `
+                        <div class="flex items-center space-x-2">
+                            <input type="number" id="price-${order.id}" value="${order.price || ''}" placeholder="0.00" class="w-20 border border-gray-300 rounded px-2 py-1 text-sm">
+                            <button onclick="savePrice(${order.id})" class="text-green-600 hover:text-green-800"><i class="fa-solid fa-save"></i></button>
+                        </div>
+                        `
+                : /* MÜŞTERİ İSE: Sadece Fiyatı Göster */ `
+                        <div class="text-sm font-bold text-gray-900">
+                            ${order.price ? order.price + ' ₺' : '-'}
+                        </div>
+                        `
+            }
                 </td>
             </tr>
         `).join('');
