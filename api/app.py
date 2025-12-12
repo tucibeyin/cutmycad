@@ -32,51 +32,79 @@ db = SQLAlchemy(app)
 server_session = Session(app)
 CORS(app, supports_credentials=True)
 
-# --- DB MODELLERİ ---
+# --- YENİ KULLANICI MODELİ ---
 class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(50), unique=True, nullable=False)
+    first_name = db.Column(db.String(50), nullable=False)  # Ad
+    last_name = db.Column(db.String(50), nullable=False)   # Soyad
+    phone = db.Column(db.String(20), nullable=False)       # Telefon
+    email = db.Column(db.String(120), unique=True, nullable=False) # E-Posta (Giriş için)
     password_hash = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
-# YENİ: Siparişler Tablosu
 class Order(db.Model):
     __tablename__ = 'orders'
     id = db.Column(db.Integer, primary_key=True)
-    customer_name = db.Column(db.String(100), nullable=False) # Müşteri Adı
-    service_type = db.Column(db.String(50), nullable=False)   # CNC, Lazer, 3D
-    file_name = db.Column(db.String(255), nullable=False)     # Dosya adı
-    status = db.Column(db.String(20), default='Bekliyor')     # Bekliyor, Fiyatlandı
-    price = db.Column(db.Float, nullable=True)                # Verilen Fiyat
+    customer_name = db.Column(db.String(100), nullable=False)
+    service_type = db.Column(db.String(50), nullable=False)
+    file_name = db.Column(db.String(255), nullable=False)
+    status = db.Column(db.String(20), default='Bekliyor')
+    price = db.Column(db.Float, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
 # --- ROTALAR ---
 
-# 1. Login/Register (Eski kodlar aynı)
+# YENİ: KAYIT OL (Register)
 @app.route('/api/register', methods=['POST'])
 def register():
     data = request.json
-    username = data.get('username')
+    
+    # Verileri al
+    first_name = data.get('first_name')
+    last_name = data.get('last_name')
+    phone = data.get('phone')
+    email = data.get('email')
     password = data.get('password')
-    if not username or not password: return jsonify({'error': 'Eksik bilgi'}), 400
-    if User.query.filter_by(username=username).first(): return jsonify({'error': 'Kullanıcı zaten var'}), 400
+
+    # Boş alan kontrolü
+    if not all([first_name, last_name, phone, email, password]):
+        return jsonify({'error': 'Lütfen tüm alanları doldurun'}), 400
+
+    # E-posta daha önce alınmış mı?
+    if User.query.filter_by(email=email).first():
+        return jsonify({'error': 'Bu e-posta adresi zaten kayıtlı'}), 400
+
+    # Kayıt İşlemi
     hashed_pw = generate_password_hash(password)
-    new_user = User(username=username, password_hash=hashed_pw)
+    new_user = User(
+        first_name=first_name,
+        last_name=last_name,
+        phone=phone,
+        email=email,
+        password_hash=hashed_pw
+    )
+    
     db.session.add(new_user)
     db.session.commit()
-    return jsonify({'message': 'Kullanıcı oluşturuldu'}), 201
 
+    return jsonify({'message': 'Kayıt başarılı! Giriş yapabilirsiniz.'}), 201
+
+# GÜNCELLENDİ: GİRİŞ YAP (Login - Artık Email ile)
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.json
-    username = data.get('username')
+    email = data.get('email')     # Username yerine Email
     password = data.get('password')
-    user = User.query.filter_by(username=username).first()
+
+    user = User.query.filter_by(email=email).first()
+
     if user and check_password_hash(user.password_hash, password):
         session['user_id'] = user.id
-        session['username'] = user.username
-        return jsonify({'message': 'Giriş başarılı', 'user': user.username}), 200
-    return jsonify({'error': 'Hatalı kullanıcı adı veya şifre'}), 401
+        session['username'] = f"{user.first_name} {user.last_name}" # Ekranda Ad Soyad görünsün
+        return jsonify({'message': 'Giriş başarılı', 'user': session['username']}), 200
+    
+    return jsonify({'error': 'Hatalı e-posta veya şifre'}), 401
 
 @app.route('/api/check-session', methods=['GET'])
 def check_session():
@@ -90,12 +118,9 @@ def logout():
     session.pop('username', None)
     return jsonify({'message': 'Çıkış yapıldı'}), 200
 
-# --- YENİ: ADMİN SİPARİŞ YÖNETİMİ ---
-
-# Tüm Siparişleri Getir
+# SİPARİŞLER (Aynı kaldı)
 @app.route('/api/orders', methods=['GET'])
 def get_orders():
-    # Gerçek hayatta buraya "if user != admin return 403" eklenir
     orders = Order.query.order_by(Order.created_at.desc()).all()
     output = []
     for order in orders:
@@ -110,36 +135,28 @@ def get_orders():
         })
     return jsonify(output), 200
 
-# Fiyat Güncelle (Teklif Ver)
 @app.route('/api/orders/<int:id>/quote', methods=['POST'])
 def update_price(id):
     data = request.json
     new_price = data.get('price')
-    
     order = Order.query.get(id)
-    if not order:
-        return jsonify({'error': 'Sipariş bulunamadı'}), 404
-        
+    if not order: return jsonify({'error': 'Sipariş bulunamadı'}), 404
     order.price = new_price
     order.status = 'Fiyatlandı'
     db.session.commit()
-    
     return jsonify({'message': 'Fiyat güncellendi'}), 200
 
-# TEST İÇİN: Sahte Sipariş Oluşturucu
 @app.route('/api/create-fake-orders', methods=['GET'])
 def fake_orders():
-    # Eğer hiç sipariş yoksa test verisi ekle
     if Order.query.count() == 0:
         o1 = Order(customer_name="Ahmet Yılmaz", service_type="CNC İşleme", file_name="motor_block_v2.step")
         o2 = Order(customer_name="Mehmet Demir", service_type="Lazer Kesim", file_name="flanş_3mm.dxf")
-        o3 = Order(customer_name="Ayşe Kaya", service_type="3D Baskı", file_name="prototype_case.stl")
-        db.session.add_all([o1, o2, o3])
+        db.session.add_all([o1, o2])
         db.session.commit()
-        return jsonify({'message': '3 adet test siparişi oluşturuldu'}), 201
+        return jsonify({'message': 'Test siparişleri oluşturuldu'}), 201
     return jsonify({'message': 'Zaten siparişler var'}), 200
 
 if __name__ == '__main__':
     with app.app_context():
-        db.create_all() # Yeni tabloları oluşturur
+        db.create_all()
     app.run(host='127.0.0.1', port=5001)
